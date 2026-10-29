@@ -1,16 +1,9 @@
 import { expect, test } from '@playwright/test';
-
-const baseURL = (
-  process.env.RESTFUL_BOOKER_BASE_URL ?? 'https://restful-booker.herokuapp.com'
-).replace(/\/+$/, '');
+import { baseURL } from './config';
+import { getAuthHeaders } from './helpers';
 
 test('persists booking updates', async ({ request }) => {
-  const authResponse = await request.post(`${baseURL}/auth`, {
-    data: { username: 'admin', password: 'password123' },
-  });
-  expect(authResponse.status()).toBe(200);
-  const authBody: { token: string } = await authResponse.json();
-  const authHeaders = { Cookie: `token=${authBody.token}` };
+  const authHeaders = await getAuthHeaders(request);
 
   const booking = {
     firstname: 'Casey',
@@ -49,14 +42,7 @@ test('persists booking updates', async ({ request }) => {
 });
 
 test('creates, reads, updates, and deletes a booking', async ({ request }) => {
-  const authResponse = await request.post(`${baseURL}/auth`, {
-    data: { username: 'admin', password: 'password123' },
-  });
-
-  expect(authResponse.status()).toBe(200);
-  const authBody: { token: string } = await authResponse.json();
-  expect(authBody.token).toBeTruthy();
-  const authHeaders = { Cookie: `token=${authBody.token}` };
+  const authHeaders = await getAuthHeaders(request);
 
   const booking = {
     firstname: 'Taylor',
