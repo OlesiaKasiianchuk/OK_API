@@ -9,6 +9,7 @@ const baseURL = (process.env.REQRES_BASE_URL ?? 'https://reqres.in').replace(
   /\/+$/,
   '',
 );
+const usersPath = '/api/users';
 const apiKey = process.env.REQRES_API_KEY;
 const authHeaders = apiKey ? { 'x-api-key': apiKey } : {};
 
@@ -17,17 +18,17 @@ async function createUser(
   data: Record<string, string> | string | Buffer,
   headers: Record<string, string> = {},
 ): Promise<APIResponse> {
-  return request.post(`${baseURL}/api/users`, {
+  return request.post(`${baseURL}${usersPath}`, {
     data,
     headers: { ...authHeaders, ...headers },
   });
 }
 
 test.describe('GET /api/users', () => {
-  test('GET /api/users/2 returns a user with the expected fields', async ({
+  test(`GET ${usersPath}/2 returns a user with the expected fields`, async ({
     request,
   }) => {
-    const response = await request.get(`${baseURL}/api/users/2`, {
+    const response = await request.get(`${baseURL}${usersPath}/2`, {
       headers: authHeaders,
     });
 
@@ -52,10 +53,10 @@ test.describe('GET /api/users', () => {
     expect(body.data.avatar).toContain('/2-image.jpg');
   });
 
-  test('GET /api/users validates every user and handles missing or null fields', async ({
+  test(`GET ${usersPath} validates every user and handles missing or null fields`, async ({
     request,
   }) => {
-    const response = await request.get(`${baseURL}/api/users?page=2`, {
+    const response = await request.get(`${baseURL}${usersPath}?page=2`, {
       headers: authHeaders,
     });
 
@@ -133,7 +134,7 @@ test.describe('POST /api/users', () => {
 test.describe('PUT /api/users/2', () => {
   test('returns the updated user fields', async ({ request }) => {
     const updatedUser = { name: 'Jane', job: 'Senior QA Engineer' };
-    const response = await request.put(`${baseURL}/api/users/2`, {
+    const response = await request.put(`${baseURL}${usersPath}/2`, {
       data: updatedUser,
       headers: authHeaders,
     });
@@ -148,7 +149,7 @@ test.describe('PUT /api/users/2', () => {
 test.describe('PATCH /api/users/2', () => {
   test('returns the changed user field', async ({ request }) => {
     const changedFields = { job: 'Lead QA Engineer' };
-    const response = await request.patch(`${baseURL}/api/users/2`, {
+    const response = await request.patch(`${baseURL}${usersPath}/2`, {
       data: changedFields,
       headers: authHeaders,
     });
@@ -162,7 +163,7 @@ test.describe('PATCH /api/users/2', () => {
 
 test.describe('DELETE /api/users/2', () => {
   test('returns 204 with no response body', async ({ request }) => {
-    const response = await request.delete(`${baseURL}/api/users/2`, {
+    const response = await request.delete(`${baseURL}${usersPath}/2`, {
       headers: authHeaders,
     });
 
