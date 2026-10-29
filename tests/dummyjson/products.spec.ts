@@ -11,9 +11,10 @@ type ProductsResponse = {
   limit: number;
 };
 
-test('GET /products returns consistent pagination metadata', async ({
-  request,
-}) => {
+test.describe('GET /products returns consistent pagination metadata', () => {
+  test('should return consistent pagination metadata', async ({
+    request,
+  }) => {
   const itemsPerPage = 10;
   const firstPageResponse = await request.get(
     `${baseURL}/products?limit=${itemsPerPage}&skip=0`,
@@ -41,4 +42,5 @@ test('GET /products returns consistent pagination metadata', async ({
   expect(lastPage.skip).toBe(lastPageSkip);
   expect(lastPage.limit).toBe(lastPageItemCount);
   expect(lastPage.products).toHaveLength(lastPageItemCount);
+  });
 });
