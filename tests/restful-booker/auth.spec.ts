@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { baseURL, userData } from './config';
+import {
+  getApiBaseURL,
+  getRestfulBookerCredentials,
+} from '../config/environments';
+
+const baseURL = getApiBaseURL('restful-booker');
+const userData = getRestfulBookerCredentials();
 
 test.describe('Authentication in restful-booker', () => {
   test('authenticates valid credentials', async ({ request }) => {
