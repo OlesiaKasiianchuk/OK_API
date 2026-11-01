@@ -1,0 +1,33 @@
+name: Smoke
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run smoke tests
+        run: npx playwright test --grep @smoke
+        env:
+          REQRES_API_KEY: ${{ secrets.REQRES_API_KEY }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-playwright-report
+          path: playwright-report/
+          retention-days: 7
