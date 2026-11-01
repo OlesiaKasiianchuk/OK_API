@@ -1,0 +1,90 @@
+import { expect, test } from '@playwright/test';
+import { baseURL } from './config';
+import { getAuthHeaders } from './helpers';
+
+test.describe('POST /booking edge cases', () => {
+  test('returns 500 when firstname is missing', async ({ request }) => {
+    const response = await request.post(`${baseURL}/booking`, {
+      data: {
+        lastname: 'Morgan',
+        totalprice: 245,
+        depositpaid: true,
+        bookingdates: { checkin: '2027-03-10', checkout: '2027-03-14' },
+        additionalneeds: 'Breakfast',
+      },
+    });
+
+    expect(response.status()).toBe(500);
+  });
+
+  test('coerces a string totalprice to null', async ({ request }) => {
+    const authHeaders = await getAuthHeaders(request);
+
+    const response = await request.post(`${baseURL}/booking`, {
+      data: {
+        firstname: 'Taylor',
+        lastname: 'Morgan',
+        totalprice: 'not-a-number',
+        depositpaid: true,
+        bookingdates: { checkin: '2027-03-10', checkout: '2027-03-14' },
+        additionalneeds: 'Breakfast',
+      },
+    });
+
+    expect(response.status()).toBe(200);
+    const body: {
+      bookingid: number;
+      booking: { totalprice: number | null };
+    } = await response.json();
+    const bookingURL = `${baseURL}/booking/${body.bookingid}`;
+
+    try {
+      expect(body.booking.totalprice).toBeNull();
+    } finally {
+      const deleteResponse = await request.delete(bookingURL, {
+        headers: authHeaders,
+      });
+      expect(deleteResponse.status()).toBe(201);
+    }
+  });
+
+  test('creates separate bookings for duplicate data', async ({ request }) => {
+    const authHeaders = await getAuthHeaders(request);
+
+    const booking = {
+      firstname: 'Jordan',
+      lastname: 'Parker',
+      totalprice: 190,
+      depositpaid: true,
+      bookingdates: { checkin: '2027-06-08', checkout: '2027-06-12' },
+      additionalneeds: 'Dinner',
+    };
+    const bookingIds: number[] = [];
+
+    try {
+      const firstResponse = await request.post(`${baseURL}/booking`, {
+        data: booking,
+      });
+      expect(firstResponse.status()).toBe(200);
+      const firstBody: { bookingid: number } = await firstResponse.json();
+      bookingIds.push(firstBody.bookingid);
+
+      const secondResponse = await request.post(`${baseURL}/booking`, {
+        data: booking,
+      });
+      expect(secondResponse.status()).toBe(200);
+      const secondBody: { bookingid: number } = await secondResponse.json();
+      bookingIds.push(secondBody.bookingid);
+
+      expect(secondBody.bookingid).not.toBe(firstBody.bookingid);
+    } finally {
+      for (const bookingId of bookingIds) {
+        const deleteResponse = await request.delete(
+          `${baseURL}/booking/${bookingId}`,
+          { headers: authHeaders },
+        );
+        expect(deleteResponse.status()).toBe(201);
+      }
+    }
+  });
+});
