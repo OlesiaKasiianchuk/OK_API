@@ -43,4 +43,54 @@ test.describe('GET /products returns consistent pagination metadata', () => {
   expect(lastPage.limit).toBe(lastPageItemCount);
   expect(lastPage.products).toHaveLength(lastPageItemCount);
   });
+
+  test.describe('handles pagination boundary values', () => {
+    test('handles pagination boundary values', async ({ request }) => {
+    const firstItemResponse = await request.get(
+      `${baseURL}/products?limit=1&skip=0`,
+    );
+    expect(firstItemResponse.status()).toBe(200);
+    const firstItemPage: ProductsResponse = await firstItemResponse.json();
+    const total = firstItemPage.total;
+
+    expect(firstItemPage.limit).toBe(1);
+    expect(firstItemPage.products).toHaveLength(1);
+
+    const zeroLimitResponse = await request.get(
+      `${baseURL}/products?limit=0&skip=0`,
+    );
+    expect(zeroLimitResponse.status()).toBe(200);
+    const zeroLimitPage: ProductsResponse = await zeroLimitResponse.json();
+    expect(zeroLimitPage.limit).toBe(total);
+    expect(zeroLimitPage.products).toHaveLength(total);
+
+    const maximumUsefulLimitResponse = await request.get(
+      `${baseURL}/products?limit=${total}&skip=0`,
+    );
+    expect(maximumUsefulLimitResponse.status()).toBe(200);
+    const maximumUsefulLimitPage: ProductsResponse =
+      await maximumUsefulLimitResponse.json();
+    expect(maximumUsefulLimitPage.limit).toBe(total);
+    expect(maximumUsefulLimitPage.products).toHaveLength(total);
+
+    const lastItemResponse = await request.get(
+      `${baseURL}/products?limit=10&skip=${total - 1}`,
+    );
+    expect(lastItemResponse.status()).toBe(200);
+    const lastItemPage: ProductsResponse = await lastItemResponse.json();
+    expect(lastItemPage.products).toHaveLength(1);
+
+    const pastEndResponse = await request.get(
+      `${baseURL}/products?limit=10&skip=${total}`,
+    );
+    expect(pastEndResponse.status()).toBe(200);
+    const pastEndPage: ProductsResponse = await pastEndResponse.json();
+    expect(pastEndPage.products).toHaveLength(0);
+
+    const negativeSkipResponse = await request.get(
+      `${baseURL}/products?limit=10&skip=-1`,
+    );
+    expect(negativeSkipResponse.status()).toBe(400);
+  });
+  });
 });

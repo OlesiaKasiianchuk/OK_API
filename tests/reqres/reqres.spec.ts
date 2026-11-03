@@ -1,17 +1,13 @@
-import {
-  expect,
-  test,
-  type APIRequestContext,
-  type APIResponse,
-} from '@playwright/test';
+import type { APIRequestContext, APIResponse } from '@playwright/test';
+import { expect, test } from '../fixtures/api';
+import { getApiBaseURL } from '../config/environments';
 
-const baseURL = (process.env.REQRES_BASE_URL ?? 'https://reqres.in').replace(
-  /\/+$/,
-  '',
-);
+const baseURL = getApiBaseURL('reqres');
 const usersPath = '/api/users';
 const apiKey = process.env.REQRES_API_KEY;
-const authHeaders = apiKey ? { 'x-api-key': apiKey } : {};
+const authHeaders: Record<string, string> = apiKey
+  ? { 'x-api-key': apiKey }
+  : {};
 
 async function createUser(
   request: APIRequestContext,
@@ -26,23 +22,9 @@ async function createUser(
 
 test.describe('GET /api/users', () => {
   test(`GET ${usersPath}/2 returns a user with the expected fields`, async ({
-    request,
+    userService,
   }) => {
-    const response = await request.get(`${baseURL}${usersPath}/2`, {
-      headers: authHeaders,
-    });
-
-    expect(response.status()).toBe(200);
-
-    const body: {
-      data: {
-        id: number;
-        email: string;
-        first_name: string;
-        last_name: string;
-        avatar: string;
-      };
-    } = await response.json();
+    const body = await userService.getUser(2);
 
     expect(body.data).toMatchObject({
       id: 2,
@@ -91,14 +73,9 @@ test.describe('GET /api/users', () => {
 });
 
 test.describe('POST /api/users', () => {
-  test('creates a user and returns its ID', async ({ request }) => {
+  test('creates a user and returns its ID', async ({ userService }) => {
     const user = { name: 'Jane', job: 'QA Engineer' };
-    const response = await createUser(request, user);
-
-    expect(response.status()).toBe(201);
-
-    const body: { id: string; name: string; job: string } =
-      await response.json();
+    const body = await userService.createUser(user);
     expect(body.id).toBeTruthy();
     expect(body).toMatchObject(user);
   });
@@ -132,16 +109,9 @@ test.describe('POST /api/users', () => {
 });
 
 test.describe('PUT /api/users/2', () => {
-  test('returns the updated user fields', async ({ request }) => {
+  test('returns the updated user fields', async ({ userService }) => {
     const updatedUser = { name: 'Jane', job: 'Senior QA Engineer' };
-    const response = await request.put(`${baseURL}${usersPath}/2`, {
-      data: updatedUser,
-      headers: authHeaders,
-    });
-
-    expect(response.status()).toBe(200);
-
-    const body: { name: string; job: string } = await response.json();
+    const body = await userService.updateUser(2, updatedUser);
     expect(body).toMatchObject(updatedUser);
   });
 });

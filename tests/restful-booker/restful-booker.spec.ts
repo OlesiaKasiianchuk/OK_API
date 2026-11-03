@@ -1,71 +1,29 @@
-import { expect, test } from '@playwright/test';
-import { baseURL } from './config';
-import { getAuthHeaders } from './helpers';
+import { expect, test } from '../fixtures/api';
 
-test('persists booking updates', async ({ request }) => {
-  const authHeaders = await getAuthHeaders(request);
-
-  const booking = {
-    firstname: 'Casey',
-    lastname: 'Lee',
-    totalprice: 180,
-    depositpaid: false,
-    bookingdates: { checkin: '2027-05-10', checkout: '2027-05-13' },
-    additionalneeds: 'Lunch',
-  };
-  const createResponse = await request.post(`${baseURL}/booking`, {
-    data: booking,
-  });
-  expect(createResponse.status()).toBe(200);
-  const createBody: { bookingid: number } = await createResponse.json();
-  const bookingURL = `${baseURL}/booking/${createBody.bookingid}`;
-
+test('persists booking updates', async ({ bookingService, seededBooking }) => {
+  const { id: bookingId, booking } = seededBooking;
   const updatedBooking = {
     ...booking,
     firstname: 'Casey-Updated',
     totalprice: 225,
   };
-  const updateResponse = await request.put(bookingURL, {
-    data: updatedBooking,
-    headers: authHeaders,
-  });
-  expect(updateResponse.status()).toBe(200);
+  const updateResponse = await bookingService.updateBooking(
+    bookingId,
+    updatedBooking,
+  );
+  expect(updateResponse).toMatchObject(updatedBooking);
 
-  const persistedResponse = await request.get(bookingURL);
-  expect(persistedResponse.status()).toBe(200);
-  expect(await persistedResponse.json()).toMatchObject(updatedBooking);
-
-  const deleteResponse = await request.delete(bookingURL, {
-    headers: authHeaders,
-  });
-  expect(deleteResponse.status()).toBe(201);
+  const persistedResponse = await bookingService.getBooking(bookingId);
+  expect(persistedResponse).toMatchObject(updatedBooking);
 });
 
-test('creates, reads, updates, and deletes a booking', async ({ request }) => {
-  const authHeaders = await getAuthHeaders(request);
-
-  const booking = {
-    firstname: 'Taylor',
-    lastname: 'Morgan',
-    totalprice: 245,
-    depositpaid: true,
-    bookingdates: { checkin: '2027-03-10', checkout: '2027-03-14' },
-    additionalneeds: 'Breakfast',
-  };
-  const createResponse = await request.post(`${baseURL}/booking`, {
-    data: booking,
-  });
-
-  expect(createResponse.status()).toBe(200);
-  const createBody: { bookingid: number; booking: typeof booking } =
-    await createResponse.json();
-  expect(createBody.bookingid).toBeGreaterThan(0);
-  expect(createBody.booking).toMatchObject(booking);
-  const bookingURL = `${baseURL}/booking/${createBody.bookingid}`;
-
-  const readResponse = await request.get(bookingURL);
-  expect(readResponse.status()).toBe(200);
-  expect(await readResponse.json()).toMatchObject(booking);
+test('creates, reads, updates, and deletes a booking', async ({
+  bookingService,
+  seededBooking,
+}) => {
+  const { id: bookingId, booking } = seededBooking;
+  const readResponse = await bookingService.getBooking(bookingId);
+  expect(readResponse).toMatchObject(booking);
 
   const updatedBooking = {
     ...booking,
@@ -73,19 +31,15 @@ test('creates, reads, updates, and deletes a booking', async ({ request }) => {
     totalprice: 310,
     bookingdates: { checkin: '2027-04-02', checkout: '2027-04-06' },
   };
-  const updateResponse = await request.put(bookingURL, {
-    data: updatedBooking,
-    headers: authHeaders,
+  const updateResponse = await bookingService.updateBooking(
+    bookingId,
+    updatedBooking,
+  );
+  expect(updateResponse).toMatchObject(updatedBooking);
+
+  await seededBooking.delete();
+
+  await expect(bookingService.getBooking(bookingId)).rejects.toMatchObject({
+    status: 404,
   });
-
-  expect(updateResponse.status()).toBe(200);
-  expect(await updateResponse.json()).toMatchObject(updatedBooking);
-
-  const deleteResponse = await request.delete(bookingURL, {
-    headers: authHeaders,
-  });
-  expect(deleteResponse.status()).toBe(201);
-
-  const absentResponse = await request.get(bookingURL);
-  expect(absentResponse.status()).toBe(404);
 });
